@@ -88,9 +88,9 @@ with DAG(
         python_callable = load_fact_table
     )
 
-    write_csv_file = PythonOperator(
-        task_id = 'write_csv_file',
-        python_callable = write_csv_file
+    write_mysql_db = PythonOperator(
+        task_id = 'write_mysql_db',
+        python_callable = write_mysql_db
     )
 
     end_operator = DummyOperator(
@@ -101,4 +101,4 @@ with DAG(
 
 start_operator >> [read_csv_file, read_json_file] >> preprocessing
 
-preprocessing >> [load_datetime_dim_table, load_category_dim_table, load_title_dim_table, load_channel_dim_table, load_tags_dim_table, load_videoDesc_dim_table, load_settings_dim_table, load_thumbnail_link_dim_table] >> load_fact_table >> write_csv_file >> end_operator
+preprocessing >> [load_datetime_dim_table, load_category_dim_table, load_title_dim_table, load_channel_dim_table, load_tags_dim_table, load_videoDesc_dim_table, load_settings_dim_table, load_thumbnail_link_dim_table] >> load_fact_table >> write_mysql_db >> end_operator

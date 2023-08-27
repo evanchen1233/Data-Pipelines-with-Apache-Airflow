@@ -1,15 +1,18 @@
 import pandas as pd
+import mysql.connector
+from mysql.connector import Error
+from sqlalchemy import create_engine
 
 def read_csv_file():
     df = pd.read_csv('~/airflow/data/USvideos.csv')
-
+    #"https://storage.googleapis.com/youtube_data_engineering/USvideos.csv"
     print(df.head())
 
     return df.to_json()
 
 def read_json_file():
     df = pd.read_json('~/airflow/data/US_category_id.json')
-
+    #"https://storage.googleapis.com/youtube_data_engineering/US_category_id.json"
     print(df.head())
 
     return df.to_json()
@@ -199,7 +202,7 @@ def load_fact_table(ti):
 
     return fact_table.to_json()
 
-def write_csv_file(ti):
+def write_mysql_db(ti):
     
     json_data = ti.xcom_pull(task_ids='load_datetime_dim_table')
     json_data2 = ti.xcom_pull(task_ids='load_category_dim_table')
@@ -221,12 +224,32 @@ def write_csv_file(ti):
     thumbnail_link_dim = pd.read_json(json_data8)
     fact_table = pd.read_json(json_data9)
 
-    datetime_dim.to_csv('~/airflow/data/datetime_dim.csv', index=False)
-    category_dim.to_csv('~/airflow/data/category_dim.csv', index=False)
-    title_dim.to_csv('~/airflow/data/title_dim.csv', index=False)
-    channel_dim.to_csv('~/airflow/data/channel_dim.csv', index=False)
-    tags_dim.to_csv('~/airflow/data/tags_dim.csv', index=False)
-    videoDesc_dim.to_csv('~/airflow/data/videoDesc_dim.csv', index=False)
-    settings_dim.to_csv('~/airflow/data/settings_dim.csv', index=False)
-    thumbnail_link_dim.to_csv('~/airflow/data/thumbnail_link_dim.csv', index=False)
-    fact_table.to_csv('~/airflow/data/fact_table.csv', index=False)
+    try:
+        mydb = mysql.connector.connect(
+            host="localhost",
+            user="evan",
+            password="Wrwr1234"
+        )
+        print("Connection established")
+        cursor = mydb.cursor()
+        cursor.execute("create database if not exists youtube")
+        mydb.commit()
+        print("Database created successfully")
+        cursor.execute("use youtube")
+    
+    except mysql.connector.Error as err:
+        print("An error occurred:", err)
+
+    engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}".format(host="localhost", db="youtube", user="evan", pw="Wrwr1234"))
+    fact_table.to_sql('fact_table', engine, if_exists='replace', index=False)
+    datetime_dim.to_sql('datetime_dim', engine, if_exists='replace', index=False)
+    category_dim.to_sql('category_dim', engine, if_exists='replace', index=False)
+    title_dim.to_sql('title_dim', engine, if_exists='replace', index=False)
+    channel_dim.to_sql('channel_dim', engine, if_exists='replace', index=False)
+    tags_dim.to_sql('tags_dim', engine, if_exists='replace', index=False)
+    videoDesc_dim.to_sql('videodesc_dim', engine, if_exists='replace', index=False)
+    settings_dim.to_sql('settings_dim', engine, if_exists='replace', index=False)
+    thumbnail_link_dim.to_sql('thumbnail_link_dim', engine, if_exists='replace', index=False)
+
+    cursor.close()
+    mydb.close()
